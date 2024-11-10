@@ -1,0 +1,81 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. Реализация метода Compressive Sensing с использованием алгоритма Matching Pursuit (MP)
+class CompressiveSensingMP:
+    def __init__(self, signal, measurement_matrix):
+        self.signal = signal
+        self.measurement_matrix = measurement_matrix
+        self.measurements = None
+
+    def compress(self):
+        """
+        Сжатие сигнала с использованием случайной матрицы измерений.
+        """
+        print("Сжатие сигнала с использованием CS...")
+        self.measurements = np.dot(self.measurement_matrix, self.signal)
+        return self.measurements
+
+    def recover(self, num_iterations):
+        """
+        Восстановление сигнала с помощью жадного алгоритма Matching Pursuit (MP).
+        num_iterations - количество итераций для разложения сигнала.
+        """
+        print("Восстановление сигнала с помощью алгоритма Matching Pursuit (MP)...")
+
+        # Инициализация
+        residual = self.measurements.copy()
+        indices = []
+        recovered_signal = np.zeros(self.measurement_matrix.shape[1])
+
+        for _ in range(num_iterations):
+            # Шаг 1: Находим индекс столбца, который наилучшим образом приближает остаток
+            projections = np.dot(self.measurement_matrix.T, residual)
+            best_index = np.argmax(np.abs(projections))
+            indices.append(best_index)
+
+            # Шаг 2: Обновляем восстановленный сигнал
+            step_size = projections[best_index] / np.dot(self.measurement_matrix[:, best_index], self.measurement_matrix[:, best_index])
+            recovered_signal[best_index] += step_size
+
+            # Шаг 3: Обновляем остаток
+            residual -= step_size * self.measurement_matrix[:, best_index]
+
+        return recovered_signal
+
+# Пример использования:
+if __name__ == "__main__":
+    # Генерация искусственного разреженного сигнала
+    np.random.seed(42)
+    N = 100  # Длина сигнала
+    K = 10   # Количество ненулевых элементов в разреженном сигнале
+    signal = np.zeros(N)
+    signal[:K] = np.random.randn(K)  # Разреженный сигнал
+
+    # Визуализируем исходный сигнал
+    plt.plot(signal)
+    plt.title("Исходный сигнал")
+    plt.show()
+
+    # Создание случайной матрицы измерений для компрессивного измерения
+    M = 40  # Количество измерений, которое значительно меньше N
+    measurement_matrix = np.random.randn(M, N)
+
+    # Инициализация и запуск метода Compressive Sensing MP
+    cs_mp = CompressiveSensingMP(signal, measurement_matrix)
+
+    # Сжимаем сигнал
+    compressed_signal = cs_mp.compress()
+
+    # Восстанавливаем сигнал через Matching Pursuit (MP)
+    num_iterations = 15  # Количество итераций для разложения
+    recovered_signal = cs_mp.recover(num_iterations)
+
+    # Визуализируем восстановленный сигнал
+    plt.plot(recovered_signal)
+    plt.title("Восстановленный сигнал")
+    plt.show()
+
+    # Сравнение исходного и восстановленного сигнала
+    print("Исходный сигнал:\n", signal)
+    print("Восстановленный сигнал:\n", recovered_signal)
